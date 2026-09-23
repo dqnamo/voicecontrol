@@ -1,18 +1,12 @@
 import type { JevVoiceDecisionRequest } from "@dqnamo/voicecontrol";
 import { createGateway, experimental_evaluate as evaluate } from "ai";
-import type { APIRoute } from "astro";
-
-export const prerender = false;
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    headers: { "Content-Type": "application/json" },
-    status,
-  });
+  return Response.json(body, { status });
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const apiKey = import.meta.env.AI_GATEWAY_API_KEY;
+export async function POST(request: Request) {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!apiKey) return json({ error: "AI Gateway is not configured yet." }, 503);
 
   let decision: JevVoiceDecisionRequest;
@@ -45,6 +39,9 @@ export const POST: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     console.error("AI Gateway Jev request failed", error);
-    return json({ error: "Jev could not decide which piano action to run." }, 502);
+    return json(
+      { error: "Jev could not decide which piano action to run." },
+      502,
+    );
   }
-};
+}

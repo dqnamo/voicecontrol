@@ -5,7 +5,7 @@ A small pnpm monorepo for the published `@dqnamo/voicecontrol` React SDK and its
 ## Workspace
 
 - `packages/voicecontrol` — headless React voice-control primitives
-- `apps/web` — Astro + React homepage and documentation
+- `apps/web` — Next.js homepage and documentation
 
 ## Development
 

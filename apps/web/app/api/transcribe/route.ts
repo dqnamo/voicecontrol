@@ -1,20 +1,14 @@
-import type { APIRoute } from "astro";
-
-export const prerender = false;
-
 const INWORLD_TRANSCRIBE_URL = "https://api.inworld.ai/stt/v1/transcribe";
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    headers: { "Content-Type": "application/json" },
-    status,
-  });
+  return Response.json(body, { status });
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const apiKey = import.meta.env.INWORLD_API_KEY;
-  if (!apiKey) return json({ error: "Inworld STT is not configured yet." }, 503);
+export async function POST(request: Request) {
+  const apiKey = process.env.INWORLD_API_KEY;
+  if (!apiKey)
+    return json({ error: "Inworld STT is not configured yet." }, 503);
 
   let audio: FormDataEntryValue | null;
   try {
@@ -27,7 +21,10 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "A voice recording is required." }, 400);
   }
   if (audio.size > MAX_AUDIO_BYTES) {
-    return json({ error: "That recording is too long. Try a shorter command." }, 413);
+    return json(
+      { error: "That recording is too long. Try a shorter command." },
+      413,
+    );
   }
 
   try {
@@ -68,7 +65,10 @@ export const POST: APIRoute = async ({ request }) => {
     };
     if (!response.ok) {
       console.error("Inworld STT request failed", response.status, result);
-      return json({ error: "Inworld could not transcribe that recording." }, 502);
+      return json(
+        { error: "Inworld could not transcribe that recording." },
+        502,
+      );
     }
 
     return json({ transcript: result.transcription?.transcript ?? "" });
@@ -76,4 +76,4 @@ export const POST: APIRoute = async ({ request }) => {
     console.error("Inworld STT request failed", error);
     return json({ error: "Inworld could not transcribe that recording." }, 502);
   }
-};
+}

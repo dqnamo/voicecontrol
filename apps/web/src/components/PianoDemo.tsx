@@ -1,12 +1,14 @@
+"use client";
+
 import {
-  VoiceAction,
-  VoiceControlProvider,
   createJevDecisionRequest,
-  readJevVoiceDecision,
-  useVoiceControl,
   type DecideInput,
   type JevBooleanAnswer,
+  readJevVoiceDecision,
   type TranscribeInput,
+  useVoiceControl,
+  VoiceAction,
+  VoiceControlProvider,
   type VoiceDecisionResult,
 } from "@dqnamo/voicecontrol";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -76,10 +78,28 @@ const WHITE_KEYS: PianoKey[] = [
 
 const BLACK_KEYS: Array<PianoKey & { left: string }> = [
   { computerKey: "W", frequency: 277.18, id: "C#4", label: "C♯", left: "9%" },
-  { computerKey: "E", frequency: 311.13, id: "D#4", label: "D♯", left: "21.5%" },
-  { computerKey: "T", frequency: 369.99, id: "F#4", label: "F♯", left: "46.5%" },
+  {
+    computerKey: "E",
+    frequency: 311.13,
+    id: "D#4",
+    label: "D♯",
+    left: "21.5%",
+  },
+  {
+    computerKey: "T",
+    frequency: 369.99,
+    id: "F#4",
+    label: "F♯",
+    left: "46.5%",
+  },
   { computerKey: "Y", frequency: 415.3, id: "G#4", label: "G♯", left: "59%" },
-  { computerKey: "U", frequency: 466.16, id: "A#4", label: "A♯", left: "71.5%" },
+  {
+    computerKey: "U",
+    frequency: 466.16,
+    id: "A#4",
+    label: "A♯",
+    left: "71.5%",
+  },
 ];
 
 const ALL_KEYS = [...WHITE_KEYS, ...BLACK_KEYS];
@@ -128,7 +148,10 @@ function displayNotes(notes: NoteId[]) {
 }
 
 function encodeLinear16(chunks: Float32Array[], inputSampleRate: number) {
-  const inputLength = chunks.reduce((length, chunk) => length + chunk.length, 0);
+  const inputLength = chunks.reduce(
+    (length, chunk) => length + chunk.length,
+    0,
+  );
   const input = new Float32Array(inputLength);
   let inputOffset = 0;
   for (const chunk of chunks) {
@@ -159,7 +182,9 @@ function stopRecordingSession(session: RecordingSession) {
   session.source.disconnect();
   session.processor.disconnect();
   session.silentGain.disconnect();
-  session.stream.getTracks().forEach((track) => track.stop());
+  session.stream.getTracks().forEach((track) => {
+    track.stop();
+  });
 }
 
 async function transcribeAudio({ audio, signal }: TranscribeInput) {
@@ -170,7 +195,10 @@ async function transcribeAudio({ audio, signal }: TranscribeInput) {
     method: "POST",
     signal,
   });
-  const result = (await response.json()) as { error?: string; transcript?: string };
+  const result = (await response.json()) as {
+    error?: string;
+    transcript?: string;
+  };
   if (!response.ok) throw new Error(result.error ?? "Transcription failed.");
   return { transcript: result.transcript ?? "" };
 }
@@ -178,50 +206,54 @@ async function transcribeAudio({ audio, signal }: TranscribeInput) {
 export function PianoDemo() {
   const [jevOutput, setJevOutput] = useState<JevOutput | null>(null);
 
-  const decide = useCallback(async (input: DecideInput): Promise<VoiceDecisionResult> => {
-    const response = await fetch("/api/voice/decide", {
-      body: JSON.stringify(
-        createJevDecisionRequest(input, {
-          instrument: "One-octave piano from C4 to C5",
-          interpretation:
-            "Commands request individual notes or chords. A named chord means its notes should play together. Scales are not supported.",
-        }),
-      ),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-      signal: input.signal,
-    });
-    const result = (await response.json()) as JevServerResponse;
-    if (!response.ok) throw new Error(result.error ?? "Jev could not make a decision.");
+  const decide = useCallback(
+    async (input: DecideInput): Promise<VoiceDecisionResult> => {
+      const response = await fetch("/api/voice/decide", {
+        body: JSON.stringify(
+          createJevDecisionRequest(input, {
+            instrument: "One-octave piano from C4 to C5",
+            interpretation:
+              "Commands request individual notes or chords. A named chord means its notes should play together. Scales are not supported.",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        signal: input.signal,
+      });
+      const result = (await response.json()) as JevServerResponse;
+      if (!response.ok)
+        throw new Error(result.error ?? "Jev could not make a decision.");
 
-    const answers = result.answers;
-    if (!answers) throw new Error("Jev returned no action answers.");
-    const decision = readJevVoiceDecision(
-      result,
-      input.selectionMode,
-      input.multipleActionThreshold,
-    );
-    const selected = decision
-      ? Array.isArray(decision)
-        ? decision
-        : [decision]
-      : [];
+      const answers = result.answers;
+      if (!answers) throw new Error("Jev returned no action answers.");
+      const decision = readJevVoiceDecision(
+        result,
+        input.selectionMode,
+        input.multipleActionThreshold,
+      );
+      const selected = decision
+        ? Array.isArray(decision)
+          ? decision
+          : [decision]
+        : [];
 
-    setJevOutput({
-      model: result.model ?? "jev-latest",
-      probabilities: Object.entries(answers)
-        .map(([action, answer]) => ({ action, score: answer.probability }))
-        .sort((a, b) => b.score - a.score),
-      selected: selected.map(({ actionId, probability }) => ({
-        action: actionId,
-        score: probability,
-      })),
-      transcript: input.transcript,
-      usage: result.usage ?? null,
-    });
+      setJevOutput({
+        model: result.model ?? "jev-latest",
+        probabilities: Object.entries(answers)
+          .map(([action, answer]) => ({ action, score: answer.probability }))
+          .sort((a, b) => b.score - a.score),
+        selected: selected.map(({ actionId, probability }) => ({
+          action: actionId,
+          score: probability,
+        })),
+        transcript: input.transcript,
+        usage: result.usage ?? null,
+      });
 
-    return decision;
-  }, []);
+      return decision;
+    },
+    [],
+  );
 
   return (
     <VoiceControlProvider
@@ -267,7 +299,8 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
 
       const AudioContextConstructor =
         window.AudioContext ??
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
       if (!AudioContextConstructor) {
         setMessage("Web Audio is not supported in this browser.");
         return;
@@ -305,8 +338,11 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
   useEffect(() => {
     const AudioContextConstructor =
       window.AudioContext ??
-      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    setSpeechSupported(Boolean(navigator.mediaDevices && AudioContextConstructor));
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    setSpeechSupported(
+      Boolean(navigator.mediaDevices && AudioContextConstructor),
+    );
 
     return () => {
       const recording = recordingRef.current;
@@ -314,7 +350,9 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
         stopRecordingSession(recording);
         void recording.context.close();
       }
-      timersRef.current.forEach((timer) => window.clearTimeout(timer));
+      timersRef.current.forEach((timer) => {
+        window.clearTimeout(timer);
+      });
       timersRef.current.clear();
       void audioContextRef.current?.close();
     };
@@ -323,7 +361,11 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, [contenteditable='true']") || event.repeat) return;
+      if (
+        target?.matches("input, textarea, [contenteditable='true']") ||
+        event.repeat
+      )
+        return;
       const note = KEYS_BY_COMPUTER_KEY.get(event.key.toLowerCase());
       if (!note) return;
       event.preventDefault();
@@ -377,7 +419,11 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
       const audio = encodeLinear16(recording.chunks, inputSampleRate);
       await submitAudio(audio);
     } catch (nextError) {
-      setMessage(nextError instanceof Error ? nextError.message : "Transcription failed. Try again.");
+      setMessage(
+        nextError instanceof Error
+          ? nextError.message
+          : "Transcription failed. Try again.",
+      );
     }
   }
 
@@ -389,10 +435,13 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
 
     const AudioContextConstructor =
       window.AudioContext ??
-      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!navigator.mediaDevices?.getUserMedia || !AudioContextConstructor) {
       setSpeechSupported(false);
-      setMessage("Voice commands are unavailable here — type a command instead.");
+      setMessage(
+        "Voice commands are unavailable here — type a command instead.",
+      );
       return;
     }
 
@@ -403,7 +452,11 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
     let context: AudioContext | null = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
       });
       context = new AudioContextConstructor();
       if (context.state === "suspended") await context.resume();
@@ -420,14 +473,24 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
       processor.connect(silentGain);
       silentGain.connect(context.destination);
 
-      recordingRef.current = { chunks, context, processor, silentGain, source, stream };
+      recordingRef.current = {
+        chunks,
+        context,
+        processor,
+        silentGain,
+        source,
+        stream,
+      };
       setIsListening(true);
       setMessage("Listening…");
     } catch (nextError) {
-      stream?.getTracks().forEach((track) => track.stop());
+      stream?.getTracks().forEach((track) => {
+        track.stop();
+      });
       if (context && context.state !== "closed") void context.close();
       setMessage(
-        nextError instanceof DOMException && nextError.name === "NotAllowedError"
+        nextError instanceof DOMException &&
+          nextError.name === "NotAllowedError"
           ? "Microphone access was blocked — type a command instead."
           : "I couldn’t start the microphone. Try again or type a command.",
       );
@@ -440,7 +503,11 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
   const isDeciding = voiceStatus === "deciding" || voiceStatus === "executing";
   const visibleMessage =
     error?.message ??
-    (voiceStatus === "deciding" ? "Jev is deciding…" : voiceStatus === "executing" ? "Running action…" : message);
+    (voiceStatus === "deciding"
+      ? "Jev is deciding…"
+      : voiceStatus === "executing"
+        ? "Running action…"
+        : message);
   const selectedNotes =
     jevOutput?.selected.flatMap(
       ({ action }) => ACTIONS_BY_ID.get(action)?.notes ?? [],
@@ -450,10 +517,21 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
     <div className="piano-demo-layout">
       <div className="piano-demo">
         <div className="piano-demo-controls">
-          <div aria-busy={isStarting || isTranscribing || isDeciding} aria-live="polite" className="piano-demo-status">
-            <span className={isListening || isDeciding ? "is-listening" : ""} aria-hidden="true" />
+          <div
+            aria-busy={isStarting || isTranscribing || isDeciding}
+            aria-live="polite"
+            className="piano-demo-status"
+          >
+            <span
+              className={isListening || isDeciding ? "is-listening" : ""}
+              aria-hidden="true"
+            />
             <div>
-              <small>{isListening || isTranscribing ? "INWORLD STT" : "VOICECONTROL · JEV"}</small>
+              <small>
+                {isListening || isTranscribing
+                  ? "INWORLD STT"
+                  : "VOICECONTROL · JEV"}
+              </small>
               <strong>{visibleMessage}</strong>
             </div>
           </div>
@@ -461,7 +539,9 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
           <button
             aria-pressed={isListening}
             className="voice-trigger"
-            disabled={!speechSupported || isStarting || isTranscribing || isDeciding}
+            disabled={
+              !speechSupported || isStarting || isTranscribing || isDeciding
+            }
             onClick={() => void toggleListening()}
             type="button"
           >
@@ -490,11 +570,13 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
             type="text"
             value={command}
           />
-          <button disabled={isDeciding} type="submit">Play command</button>
+          <button disabled={isDeciding} type="submit">
+            Play command
+          </button>
         </form>
 
         <div className="piano-scroll">
-          <div aria-label="Interactive piano" className="piano-board">
+          <div className="piano-board">
             <div className="piano-white-keys">
               {WHITE_KEYS.map((key) => (
                 <VoiceAction
@@ -547,8 +629,8 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
         </div>
 
         <p className="piano-demo-help">
-          Click the keys or use <kbd>A–K</kbd>. Voice examples: “play F sharp” or “play D
-          minor”.
+          Click the keys or use <kbd>A–K</kbd>. Voice examples: “play F sharp”
+          or “play D minor”.
         </p>
       </div>
 
@@ -583,17 +665,19 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
             <div className="jev-output-scores">
               <span>Top action scores</span>
               <ol>
-                {jevOutput.probabilities.slice(0, 5).map(({ action, score }) => (
-                  <li key={action}>
-                    <div>
-                      <code>{action.replace("piano.", "")}</code>
-                      <span>{Math.round(score * 100)}%</span>
-                    </div>
-                    <span aria-hidden="true">
-                      <i style={{ width: `${score * 100}%` }} />
-                    </span>
-                  </li>
-                ))}
+                {jevOutput.probabilities
+                  .slice(0, 5)
+                  .map(({ action, score }) => (
+                    <li key={action}>
+                      <div>
+                        <code>{action.replace("piano.", "")}</code>
+                        <span>{Math.round(score * 100)}%</span>
+                      </div>
+                      <span aria-hidden="true">
+                        <i style={{ width: `${score * 100}%` }} />
+                      </span>
+                    </li>
+                  ))}
               </ol>
             </div>
 
@@ -615,7 +699,10 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
         ) : (
           <div className="jev-output-empty">
             <strong>Waiting for Jev</strong>
-            <p>Run a voice or typed command to see the real model response and probabilities.</p>
+            <p>
+              Run a voice or typed command to see the real model response and
+              probabilities.
+            </p>
           </div>
         )}
       </aside>

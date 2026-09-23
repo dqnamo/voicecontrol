@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "./colors.css";
+@import "../src/styles/global.css";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --text-tiny: 11px;
+}
+
+.root {
+  isolation: isolate;
+}

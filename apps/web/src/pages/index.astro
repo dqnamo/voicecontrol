@@ -1,0 +1,138 @@
+---
+import { Code } from "astro:components";
+import { ArrowRightIcon, CheckCircleIcon, CopyIcon, GithubLogoIcon } from "@phosphor-icons/react";
+import { CodeWalkthrough, walkthroughSteps } from "../components/CodeWalkthrough";
+import { PianoDemo } from "../components/PianoDemo";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { codeToHtml } from "shiki";
+
+export const prerender = true;
+
+const heroExample = `import { VoiceAction } from "@dqnamo/voicecontrol";
+
+<VoiceAction
+  id="report.export"
+  description="Export report as CSV"
+  onVoiceAction={() => exportReport("csv")}
+>
+  <button>Export CSV</button>
+</VoiceAction>`;
+
+const highlightedSteps = await Promise.all(
+  walkthroughSteps.map(({ code }) => codeToHtml(code, { lang: "tsx", theme: "github-light" })),
+);
+
+---
+
+<BaseLayout
+  title="VoiceControl — Headless voice actions for React"
+  description="Add Jev-powered voice actions to React interfaces with composable primitives and your own model infrastructure."
+>
+  <header class="site-header">
+    <div class="brand brand-lockup">
+      <a class="brand-wordmark" href="https://dqnamo.com" aria-label="Dqnamo website">dqnamo</a>
+      <a class="brand-product" href="#top">/voicecontrol</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <h1>Add super fast voice control to your app.</h1>
+        <p class="hero-lede">
+          Composable primitives that turn spoken intent into your existing React actions.
+          VoiceControl builds the Jev decision; you choose how and where Jev runs.
+        </p>
+        <div class="hero-actions">
+          <button
+            class="implementation-prompt-button"
+            type="button"
+            data-copy-implementation
+            aria-label="Copy implementation prompt"
+          >
+            <code>implement_voice_control.md</code>
+            <span class="copy-icon-shell" aria-hidden="true">
+              <CopyIcon className="copy-icon copy-icon-default" size={14} weight="bold" />
+              <CheckCircleIcon className="copy-icon copy-icon-success" size={14} weight="fill" />
+            </span>
+            <span class="sr-only copy-feedback" aria-live="polite">Copy</span>
+          </button>
+          <a
+            class="button hero-github"
+            href="https://github.com/dqnamo/voicecontrol"
+            rel="noreferrer"
+            target="_blank"
+          >
+            <GithubLogoIcon size={14} weight="fill" aria-hidden="true" />
+            GitHub
+          </a>
+        </div>
+      </div>
+
+      <aside class="hero-code" aria-label="VoiceAction code example">
+        <Code code={heroExample} lang="tsx" theme="github-light" />
+      </aside>
+    </section>
+
+    <section class="principles-strip" aria-label="How VoiceControl works">
+      <div><span>01</span><strong>Define actions</strong><small>Describe the actions already on your page.</small></div>
+      <ArrowRightIcon className="process-arrow" size={18} weight="regular" aria-hidden="true" />
+      <div><span>02</span><strong>Transcribe speech</strong><small>Turn the user’s voice into text.</small></div>
+      <ArrowRightIcon className="process-arrow" size={18} weight="regular" aria-hidden="true" />
+      <div><span>03</span><strong>Let Jev decide</strong><small>Jev chooses the matching action to run.</small></div>
+      <figure
+        class="process-latency"
+        aria-label="Illustrative latency: prepare actions under 1 millisecond, transcribe speech 520 milliseconds, Jev decision 140 milliseconds"
+      >
+        <div class="process-latency-bar" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <figcaption>
+          <span>Illustrative latency</span>
+          <span><i></i>Prepare · &lt;1 ms</span>
+          <span><i></i>Transcribe · 520 ms</span>
+          <span><i></i>Decide · 140 ms</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="demo-section section-shell" id="demo">
+      <PianoDemo client:load />
+    </section>
+
+    <section class="walkthrough-section section-shell" id="quickstart">
+      <CodeWalkthrough highlightedSteps={highlightedSteps} />
+    </section>
+  </main>
+
+  <script>
+    const implementationPrompt = `Install @dqnamo/voicecontrol using this project's package manager, then integrate voice control into the existing app.
+
+Use VoiceControlProvider to configure transcription and point decideEndpoint to a server-side route. In that route, call Jev using the project's preferred setup, such as AI SDK with AI Gateway or raw HTTP. Keep credentials on the server.
+
+Wrap the most useful existing controls with VoiceAction. Give every action a stable id, a clear description of when it should run, and its existing callback. Preserve the current UI, behavior, types, and accessibility.
+
+Follow the project's existing conventions, run its checks, and summarize the files you changed.`;
+
+    const copyButton = document.querySelector<HTMLButtonElement>("[data-copy-implementation]");
+    let copyResetTimer: number | undefined;
+
+    copyButton?.addEventListener("click", async () => {
+      const feedback = copyButton.querySelector<HTMLElement>(".copy-feedback");
+
+      if (!feedback) return;
+
+      await navigator.clipboard.writeText(implementationPrompt);
+      feedback.textContent = "Copied";
+      copyButton.dataset.copied = "true";
+      copyButton.setAttribute("aria-label", "Implementation prompt copied");
+
+      window.clearTimeout(copyResetTimer);
+      copyResetTimer = window.setTimeout(() => {
+        feedback.textContent = "Copy";
+        delete copyButton.dataset.copied;
+        copyButton.setAttribute("aria-label", "Copy implementation prompt");
+      }, 2400);
+    });
+  </script>
+</BaseLayout>

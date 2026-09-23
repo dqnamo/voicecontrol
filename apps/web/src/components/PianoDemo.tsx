@@ -88,12 +88,34 @@ const KEYS_BY_COMPUTER_KEY = new Map(
   ALL_KEYS.map((key) => [key.computerKey.toLowerCase(), key.id]),
 );
 
+const CHORD_MEMBERSHIPS: Partial<Record<NoteId, string[]>> = {
+  C4: ["C major"],
+  D4: ["D minor"],
+  E4: ["C major", "A minor"],
+  F4: ["D minor"],
+  G4: ["C major"],
+  A4: ["D minor", "A minor"],
+  C5: ["A minor"],
+};
+
 function noteActionId(note: NoteId) {
   return `piano.note.${note.toLowerCase().replace("#", "-sharp-")}`;
 }
 
+function noteActionDescription(key: PianoKey) {
+  const chords = CHORD_MEMBERSHIPS[key.id];
+  return [
+    `Play the single piano note ${key.label} (${key.id}).`,
+    chords
+      ? `Also play it when the request names one of these chords: ${chords.join(", ")}.`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 const NOTE_ACTIONS: PianoAction[] = ALL_KEYS.map((key) => ({
-  description: `Play the single piano note ${key.label} (${key.id}).`,
+  description: noteActionDescription(key),
   id: noteActionId(key.id),
   notes: [key.id],
 }));
@@ -204,7 +226,6 @@ export function PianoDemo() {
   return (
     <VoiceControlProvider
       decide={decide}
-      multipleActionThreshold={0.3}
       selectionMode="multiple"
       transcribe={transcribeAudio}
     >
@@ -478,7 +499,7 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
               {WHITE_KEYS.map((key) => (
                 <VoiceAction
                   asChild
-                  description={`Play the single piano note ${key.label} (${key.id}).`}
+                  description={noteActionDescription(key)}
                   id={noteActionId(key.id)}
                   key={key.id}
                   onVoiceAction={() => playNote(key.id)}
@@ -502,7 +523,7 @@ function PianoDemoContent({ jevOutput }: { jevOutput: JevOutput | null }) {
             {BLACK_KEYS.map((key) => (
               <VoiceAction
                 asChild
-                description={`Play the single piano note ${key.label} (${key.id}).`}
+                description={noteActionDescription(key)}
                 id={noteActionId(key.id)}
                 key={key.id}
                 onVoiceAction={() => playNote(key.id)}
